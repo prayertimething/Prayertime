@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quran Recitation Practice</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #surah-list button { margin: 5px; padding: 10px; cursor: pointer; }
+    #verse-container { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 20px; display: none; }
+    #controls button { margin: 10px 5px 0 0; padding: 10px 15px; cursor: pointer; }
+    #result { font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Quran Recitation Practice</h1>
+  <h2>astagfirullah, not good hacking this file. its beta 🙁</h2>
+  <p>Select a Surah:</p>
+  <div id="surah-list"></div>
+  
+  <div id="verse-container">
+    <h2 id="surah-title"></h2>
+    <p id="verse-text" style="font-size: 1.2em;"></p>
+    <div id="controls">
+      <button id="start-recognition">Start Recitation</button>
+      <button id="end-recognition" style="display: none;">End Recognition</button>
+      <button id="restart-recognition" style="display: none;">Restart</button>
+      <button id="next-verse" style="display: none;">Next Verse</button>
+    </div>
+    <p id="result"></p>
+  </div>
+
+  <script>
+    let verses = [];
+    let currentVerseIndex = 0;
+    let recognition = null;
+    let lastSpokenText = "";
+    let micStream = null;
+
+    async function startRecognition() {
+      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+        alert("Your browser does not support Speech Recognition. Please use Chrome.");
+        return;
+      }
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = "ar-SA";  
+        recognition.interimResults = false;
+        recognition.continuous = false;
+
+        recognition.onstart = function() {
+          document.getElementById("end-recognition").style.display = "inline-block";
+          document.getElementById("result").textContent = "Listening... Please recite the verse.";
+        };
+
+        recognition.onresult = function(event) {
+          lastSpokenText = event.results[0][0].transcript.trim().toLowerCase();
+          const expectedText = document.getElementById("verse-text").textContent.trim().toLowerCase();
+
+          const accuracy = calculateAccuracy(expectedText, lastSpokenText);
+          document.getElementById("result").textContent = `You said: "${lastSpokenText}". Accuracy: ${accuracy}%`;
+
+          document.getElementById("restart-recognition").style.display = "inline-block";
+          document.getElementById("next-verse").style.display = "inline-block";
+        };
+
+        recognition.onerror = function(event) {
+          document.getElementById("result").textContent = "Error detecting recitation: " + event.error;
+        };
+
+        recognition.onend = function() {
+          document.getElementById("end-recognition").style.display = "none";
+        };
+
+        recognition.start();
+      } catch (err) {
+        console.error("Microphone access error:", err);
+        alert("Please allow microphone access.");
+      }
+    }
+
+    function stopRecognition() {
+      if (recognition) {
+        recognition.stop();
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      document.getElementById("end-recognition").style.display = "none";
+
+      if (lastSpokenText) {
+        document.getElementById("result").textContent += " (Recognition stopped)";
+      } else {
+        document.getElementById("result").textContent = "Recognition stopped. No speech detected.";
+      }
+    }
+
+    function levenshtein(a, b) {
+      const an = a.length;
+      const bn = b.length;
+      if (an === 0) return bn;
+      if (bn === 0) return an;
+      const matrix = [];
+      for (let i = 0; i <= bn; i++) matrix[i] = [i];
+      for (let j = 0; j <= an; j++) matrix[0][j] = j;
+      for (let i = 1; i <= bn; i++) {
+        for (let j = 1; j <= an; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1, 
+              matrix[i][j - 1] + 1,     
+              matrix[i - 1][j] + 1      
+            );
+          }
+        }
+      }
+      return matrix[bn][an];
+    }
+
+    function calculateAccuracy(expected, recognized) {
+      expected = expected.trim().toLowerCase();
+      recognized = recognized.trim().toLowerCase();
+      const distance = levenshtein(expected, recognized);
+      const maxLen = Math.max(expected.length, recognized.length);
+      if (maxLen === 0) return 100;
+      return Math.round(((maxLen - distance) / maxLen) * 100);
+    }
+
+    async function loadSurahs() {
+      const response = await fetch("https://equran.id/api/v2/surat");
+      const jsonResponse = await response.json();
+      const surahs = jsonResponse.data || jsonResponse;
+
+      const surahListDiv = document.getElementById("surah-list");
+      surahs.forEach(surah => {
+        const btn = document.createElement("button");
+        btn.textContent = surah.nomor + ". " + surah.nama;
+        btn.addEventListener("click", () => loadSurah(surah));
+        surahListDiv.appendChild(btn);
+      });
+    }
+
+    async function loadSurah(surah) {
+      currentVerseIndex = 0;
+      document.getElementById("verse-container").style.display = "block";
+      document.getElementById("surah-title").textContent = surah.nama;
+
+      const response = await fetch(`https://equran.id/api/v2/surat/${surah.nomor}`);
+      const jsonResponse = await response.json();
+      verses = jsonResponse.data?.ayat || [];
+
+      loadVerse(currentVerseIndex);
+    }
+
+    function loadVerse(index) {
+      if (index >= verses.length) {
+        document.getElementById("verse-text").textContent = "Surah completed!";
+        return;
+      }
+      document.getElementById("verse-text").textContent = verses[index].teksLatin || "Not available.";
+    }
+
+    function restartRecognition() {
+      document.getElementById("result").textContent = "";
+      document.getElementById("restart-recognition").style.display = "none";
+      startRecognition();
+    }
+
+    function nextVerse() {
+      currentVerseIndex++;
+      if (currentVerseIndex < verses.length) {
+        loadVerse(currentVerseIndex);
+        document.getElementById("result").textContent = "";
+        document.getElementById("restart-recognition").style.display = "none";
+        document.getElementById("next-verse").style.display = "none";
+      } else {
+        document.getElementById("verse-text").textContent = "Surah completed!";
+      }
+    }
+
+    document.getElementById("start-recognition").addEventListener("click", startRecognition);
+    document.getElementById("end-recognition").addEventListener("click", stopRecognition);
+    document.getElementById("restart-recognition").addEventListener("click", restartRecognition);
+    document.getElementById("next-verse").addEventListener("click", nextVerse);
+
+    window.onload = loadSurahs;
+  </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Qibla Finder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #arrow {
+            margin-top: 50px;
+            width: 150px;
+            height: 150px;
+            background-image: url('https://i.imgur.com/BGZjXJa.png'); /* Updated arrow image URL */
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: transform 0.5s ease-in-out;
+            display: inline-block;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Qibla Finder | Pencari Qibla</h1>
+    <p>a</p>
+    <div id="message">Please allow access to your location and orientation.</div>
+
+    <script>
+        const arrow = document.getElementById('arrow');
+        const message = document.getElementById('message');
+
+        // Coordinates of the Kaaba
+        const kaabaLatitude = 21.4225;
+        const kaabaLongitude = 39.8262;
+
+        let userLatitude, userLongitude;
+        let qiblaDegree;
+
+        // Get user's current location
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(position => {
+                userLatitude = position.coords.latitude;
+                userLongitude = position.coords.longitude;
+                calculateQiblaDirection();
+            }, error => {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        message.textContent = 'User denied the request for Geolocation. | Pengguna menolak permintaan Geolocation.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message.textContent = 'Location information is unavailable. | Informasi lokasi tidak tersedia.';
+                        break;
+                    case error.TIMEOUT:
+                        message.textContent = 'The request to get user location timed out. | Permintaan untuk mendapatkan lokasi pengguna [terjemahan kasar] kedaluwarsa.';
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        message.textContent = 'An unknown error occurred. | Terjadi kesalahan yang tidak diketahui.';
+                        break;
+                }
+            });
+        } else {
+            message.textContent = 'Geolocation is not supported by your browser. | Geolocation tidak disupport untuk browser (hp) anda.';
+        }
+
+        // Calculate the Qibla direction from user's location
+        function calculateQiblaDirection() {
+            const userLatRad = degreesToRadians(userLatitude);
+            const userLonRad = degreesToRadians(userLongitude);
+            const kaabaLatRad = degreesToRadians(kaabaLatitude);
+            const kaabaLonRad = degreesToRadians(kaabaLongitude);
+
+            const deltaLon = kaabaLonRad - userLonRad;
+            const x = Math.cos(kaabaLatRad) * Math.sin(deltaLon);
+            const y = Math.cos(userLatRad) * Math.sin(kaabaLatRad) - Math.sin(userLatRad) * Math.cos(kaabaLatRad) * Math.cos(deltaLon);
+            const initialBearing = Math.atan2(x, y);
+            qiblaDegree = (radiansToDegrees(initialBearing) + 360) % 360;
+
+            startCompass();
+        }
+
+        // Start listening to device orientation
+        function startCompass() {
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', updateArrow);
+                message.textContent = 'Rotate your device to find the Qibla. | Putat peranykatmu untuk mencari Qibla.';
+            } else {
+                message.textContent = 'Device orientation is not supported. | Orientasi perangkat tidak disupport.';
+            }
+        }
+
+        // Update the arrow direction based on device orientation
+        function updateArrow(event) {
+            let compassDirection;
+
+            if (event.webkitCompassHeading) {
+                // For iOS devices
+                compassDirection = event.webkitCompassHeading;
+            } else if (event.alpha) {
+                // For other devices
+                compassDirection = 360 - event.alpha;
+            } else {
+                message.textContent = 'Unable to access compass data.';
+                return;
+            }
+
+            const heading = (qiblaDegree - compassDirection + 360) % 360;
+            arrow.style.transform = `rotate(${heading}deg)`;
+        }
+
+        // Utility functions to convert between degrees and radians
+        function degreesToRadians(degrees) {
+            return degrees * Math.PI / 180;
+        }
+
+        function radiansToDegrees(radians) {
+            return radians * 180 / Math.PI;
+        }
+    </script>
+
+</body>
+</html>

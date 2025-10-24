@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athkar Counter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<style>
+  /* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+p {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    background: #3498db;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.3s ease;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+@keyframes rolling {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+}
+
+.rolling-animation {
+    animation: rolling 0.5s;
+}
+
+</style>
+<body>
+    <h2>Tasbeeh Counter</h2>
+    <p>Count: <span id="count">0</span></p>
+    <button onclick="increase()">+1</button>
+    <button onclick="resetCounter()">Reset</button>
+    <h3>Click +1 for every tasbeeh done.</h3>
+    <script>
+      // watch it crumble
+async function fetchCount() {
+    const response = await fetch('https://api.example.com/tasbeeh-count'); // Replace with actual API
+    const data = await response.json();
+    document.getElementById("count").innerText = data.count;
+}
+
+async function updateCount(newCount) {
+    await fetch('https://api.example.com/tasbeeh-count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: newCount })
+    });
+}
+
+async function increase() {
+    const counter = document.getElementById("count");
+    let count = parseInt(counter.innerText);
+    counter.classList.add('rolling-animation');
+    setTimeout(async () => {
+        count++;
+        counter.innerText = count;
+        await updateCount(count);
+        counter.classList.remove('rolling-animation');
+    }, 0);
+}
+
+async function resetCounter() {
+    const counter = document.getElementById("count");
+    let randomizeCount = 100;
+    const interval = setInterval(() => {
+        counter.innerText = Math.floor(Math.random() * 9) + 1;
+        randomizeCount--;
+        if (randomizeCount === 0) {
+            clearInterval(interval);
+            counter.innerText = 0;
+            updateCount(0);
+        }
+    }, 1);
+}
+
+fetchCount();
+
+    </script>
+</body>
+</html>

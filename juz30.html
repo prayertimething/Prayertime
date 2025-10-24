@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Al-Quran</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        background: #f3f4f6;
+    }
+    h1 {
+        font-size: 2em; /* Keep the existing size for h1 */
+    }
+    h2, p, button, .modal-content {
+        font-size: 1.1em; /* Increase the size of h2, p, button, and modal content */
+    }
+    .button-container {
+        margin-top: 20px;
+    }
+    .load-juz-btn, .surah-btn, .lang-btn {
+        padding: 10px 15px;
+        margin: 5px;
+        font-size: 1.25em; /* Increase button text size */
+        color: white;
+        background: #007bff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .load-juz-btn:hover, .surah-btn:hover, .lang-btn:hover {
+        background: #0056b3;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        overflow: auto;
+    }
+    .modal-content {
+        margin: 50px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        max-width: 600px;
+        text-align: left;
+    }
+    .close-btn {
+        float: right;
+        font-size: 1.5em; /* Increase close button text size */
+        font-weight: bold;
+        color: red;
+        cursor: pointer;
+    }
+    .will-be-translated {
+      font-size: 1.1em;
+    }
+</style>
+
+</head>
+<body>
+    <h1>Assalamualaikum!</h1>
+    <div class="will-be-translated" id="will-be-translated">Language broken if you see this/Bahasa rusak jika Anda melihat ini</div>
+    <div class="button-container">
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+        <button class="lang-btn" onclick="setLanguage('id')">Indonesian</button>
+    </div>
+    <div class="button-container" id="juz-buttons-container"></div>
+    <div class="button-container" id="surah-buttons-container"></div>
+
+    <!-- Modal -->
+    <div id="quranModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="surah-title"></h2>
+            <div id="surah-content"></div>
+        </div>
+    </div>
+<script>
+    let selectedLanguage = 'en'; // Default language
+
+    // Correct Juz to Surah Mapping
+    const juzToSurahRanges = {
+    1: [1, 2],
+    2: [2, 2],
+    3: [2, 3],
+    4: [3, 4],
+    5: [4, 5],
+    6: [5, 6],
+    7: [6, 7],
+    8: [7, 8],
+    9: [8, 9],
+    10: [9, 11],
+    11: [11, 12],
+    12: [12, 14],
+    13: [14, 15],
+    14: [15, 16],
+    15: [17, 18],
+    16: [18, 20],
+    17: [20, 22],
+    18: [23, 25],
+    19: [25, 27],
+    20: [27, 29],
+    21: [29, 33],
+    22: [33, 36],
+    23: [36, 39],
+    24: [39, 41],
+    25: [41, 45],
+    26: [46, 51],
+    27: [51, 57],
+    28: [58, 66],
+    29: [67, 77],
+    30: [78, 114]
+};
+
+
+    // Load Juz Buttons
+    function loadJuzButtons() {
+        const juzButtonsContainer = document.getElementById("juz-buttons-container");
+        juzButtonsContainer.innerHTML = ""; // Clear existing buttons if any
+        for (let juz = 1; juz <= 30; juz++) {
+            const button = document.createElement("button");
+            button.className = "load-juz-btn";
+            button.innerText = `Load Juz ${juz}`;
+            button.onclick = () => loadSurahsByJuz(juz);
+            juzButtonsContainer.appendChild(button);
+        }
+    }
+
+    // Load Surahs by Juz
+    function loadSurahsByJuz(juz) {
+        console.log(`Loading Juz ${juz}...`); // Debug Log
+        const surahButtonsContainer = document.getElementById("surah-buttons-container");
+        surahButtonsContainer.innerHTML = ""; // Clear previous Surah buttons
+
+        const [start, end] = juzToSurahRanges[juz];
+        console.log(`Juz ${juz} includes Surahs ${start} to ${end}`); // Debug Log
+        for (let surahNo = start; surahNo <= end; surahNo++) {
+            fetch(`${apiBase}${surahNo}.json`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch Surah ${surahNo}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(`Loaded Surah ${surahNo}:`, data); // Debug Log
+                    const button = document.createElement("button");
+                    button.className = "surah-btn";
+                    button.innerText = `${data.surahName} (${data.surahNameTranslation})`;
+                    button.onclick = () => loadSurahDetails(surahNo);
+                    surahButtonsContainer.appendChild(button);
+                })
+                .catch(err => {
+                    console.error(`Error fetching Surah ${surahNo}: ${err.message}`);
+                });
+        }
+    }
+
+    // API Base URL
+    const apiBase = "https://quranapi.pages.dev/api/";
+
+    // Initialize on Page Load
+    document.addEventListener("DOMContentLoaded", () => {
+        loadJuzButtons();
+    });
+
+    async function fetchTeksIndonesia(surahNo) {
+        const response = await fetch(`https://equran.id/api/v2/surat/${surahNo}`, {
+            method: 'GET',
+            headers: {
+                'Accept': '*/*',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch Indonesian translation');
+        }
+
+        const data = await response.json();
+        const ayatArray = data.data    .ayat;
+        let teksIndonesiaContent = `
+        <p><strong>Arti:</strong> ${data.data.arti}</p>
+        <p><strong>Tempat Turun:</strong> ${data.data.tempatTurun}</p>
+        <p><strong>Jumlah Ayat:</strong> ${data.data.jumlahAyat}</p>
+        <p><strong>Deskripsi Surah:</strong> ${data.data.deskripsi}</p>
+    `;
+        console.log(data)
+
+        ayatArray.forEach(ayat => {
+            teksIndonesiaContent += `
+                <p><strong>Ayat ${ayat.nomorAyat}:</strong></p>
+                <p>${ayat.teksIndonesia}</p>
+                <p>${ayat.teksArab}</p>
+                <p>${ayat.teksLatin}</p>
+                <hr>
+            `;
+        });
+
+        return teksIndonesiaContent;
+    }
+
+    function loadSurahDetails(surahNo) {
+        const modal = document.getElementById("quranModal");
+        const title = document.getElementById("surah-title");
+        const content = document.getElementById("surah-content");
+
+        if (selectedLanguage === 'en') {
+            fetch(`${apiBase}${surahNo}.json`)
+                .then(response => response.json())
+                .then(data => {
+                    title.innerText = `${data.surahName} (${data.surahNameArabic})`;
+                    let surahHtml = `
+                        <p><strong>Translation:</strong> ${data.surahNameTranslation}</p>
+                        <p><strong>Revelation Place:</strong> ${data.revelationPlace}</p>
+                        <p><strong>Total Verses:</strong> ${data.totalAyah}</p>
+                        <hr>
+                    `;
+                    data.english.forEach((ayah, index) => {
+                        surahHtml += `
+                            <p><strong>Verse ${index + 1}:</strong></p>
+                            <p>${ayah}</p>
+                            <p>${data.arabic1[index]}</p>
+                            <hr>
+                        `;
+                    });
+                    content.innerHTML = surahHtml;
+                    modal.style.display = "block";
+                })
+                .catch(err => {
+                    content.innerHTML = `<p>Error loading Surah: ${err.message}</p>`;
+                    modal.style.display = "block";
+                });
+        } else {
+            fetchTeksIndonesia(surahNo)
+                .then(teksIndonesiaContent => {
+                    title.innerText = `Surah ${surahNo}`;
+                    content.innerHTML = teksIndonesiaContent;
+                    modal.style.display = "block";
+                })
+                .catch(err => {
+                    content.innerHTML = `<p>Error loading Surah: ${err.message}</p>`;
+                    modal.style.display = "block";
+                    console.log(data)
+                });
+        }
+    }
+
+    function closeModal() {
+        document.getElementById("quranModal").style.display = "none";
+    }
+
+    function setLanguage(lang) {
+        selectedLanguage = lang;
+        alert(`Language set to ${lang === 'en' ? 'English' : 'Indonesian'}`);
+    }
+    document.getElementById("will-be-translated").innerHTML = 
+            selectedLanguage === 'en' ? 'Welcome to the full Al Quran.' : 'Selamat datang ke Al Quran penuh.';
+      </script>
+
+</body>
+</html>
