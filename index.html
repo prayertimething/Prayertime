@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prayer Times</title>
+    <style>
+/* General Styling */
+:root {
+    --primary-color: #4e73df;
+    --secondary-color: #1e3c72;
+    --highlight-color: #ffcc00;
+    --background-color: #eef2f3;
+    --text-color: #333;
+    --button-color: #4e73df;
+    --button-hover-color: #3498db;
+    --error-color: #ff4d4d;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: var(--background-color);
+}
+
+/* Container for layout */
+.container {
+    display: flex;
+    width: 90%;
+    max-width: 1000px;
+    background: white;
+    border: 2px solid #ccc;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    flex-wrap: wrap; /* Allow responsiveness */
+}
+
+/* Prayer times section */
+.prayer-times {
+    flex: 1 1 50%; /* Makes it responsive */
+    padding: 1.5rem;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.prayer-time {
+    font-size: 1rem;
+    margin: 1rem 0;
+}
+
+.prayer-time.active {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--highlight-color);
+}
+
+/* Hadith section */
+.hadith {
+    flex: 1 1 50%; /* Makes it responsive */
+    padding: 1.5rem;
+    background: var(--secondary-color);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Timer */
+#timer {
+    font-size: 1.25rem;
+    color: var(--text-color);
+    margin-top: 1rem;
+}
+
+/* Popup Styling */
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    padding: 1rem;
+    background: white;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    text-align: center;
+    z-index: 9999;
+}
+
+.popup h2 {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+}
+
+.popup button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    margin: 0.5rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.popup button#yes-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
+.popup button#no-btn {
+    background: var(--error-color);
+    color: white;
+}
+
+.popup button:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Background overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+/* Buttons styling (General) */
+button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    margin-top: 1rem;
+    border: none;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Responsive Design for smaller screens */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .prayer-times, .hadith {
+        flex: 1 1 100%;
+        padding: 1rem;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Prayer Times Section -->
+        <div class="prayer-times" id="prayer-times">
+            <h3>Prayer Times</h3>
+            <div id="fajr" class="prayer-time"></div>
+            <div id="dhuhr" class="prayer-time"></div>
+            <div id="asr" class="prayer-time"></div>
+            <div id="maghrib" class="prayer-time"></div>
+            <div id="isha" class="prayer-time"></div>
+        </div>
+
+        <!-- Hadith Section -->
+        <div class="hadith" id="hadith">
+            <h3>Hadith of the Minute</h3>
+            <p id="hadith-text">“The best among you are those who have the best manners and character.” – Prophet Muhammad (PBUH)</p>
+        </div>
+    </div>
+
+    <div id="timer">Time until next prayer: <span id="countdown">--:--:--</span></div>
+    <p>The time fixed!</p>
+    <button onclick="OpenJuz30()">Al Qur'an</button>
+    <button onclick="Qibla()">Qibla Finder (Innacurate)</button>
+    <button onclick="HijriDate()">Hijri (Broken events)</button>
+    <button onclick="Count()">Tasbeeh Counter</button>
+
+    <!-- Location Popup -->
+    <div id="location-popup" class="popup" style="display: none;">
+        <h2>Allow Location Access?</h2>
+        <p>We need your location to display accurate prayer times.</p>
+        <button id="yes-btn">Yes</button>
+        <button id="no-btn">No</button>
+    </div>
+
+    <!-- Background Overlay -->
+    <div id="overlay" class="overlay" style="display: none;"></div>
+
+    <!-- Audio for Adhan -->
+    <audio id="adhan-audio" src="https://path/to/adhan.mp3" preload="auto"></audio>
+
+    
+<script>
+const hadiths = [ /* Hadith list trimmed for brevity */ ];
+
+let currentHadithIndex = 0;
+let prayerTimes = {};
+
+function updateHadith() {
+    const hadithText = document.getElementById('hadith-text');
+    hadithText.innerText = hadiths[currentHadithIndex];
+    currentHadithIndex = (currentHadithIndex + 1) % hadiths.length;
+}
+
+function fetchPrayerTimes(city, country) {
+    const url = `https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=2`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const timings = data.data.timings;
+            prayerTimes = {
+                Fajr: timings.Fajr,
+                Dhuhr: timings.Dhuhr,
+                Asr: timings.Asr,
+                Maghrib: timings.Maghrib,
+                Isha: timings.Isha
+            };
+            updatePrayerTimesDisplay();
+            startTimer();
+            scheduleNotifications(prayerTimes);
+        })
+        .catch(() => alert('❌ Error fetching prayer times. Check city/country values.'));
+}
+
+function updatePrayerTimesDisplay() {
+    document.getElementById('fajr').innerText = `Fajr: ${prayerTimes.Fajr}`;
+    document.getElementById('dhuhr').innerText = `Dhuhr: ${prayerTimes.Dhuhr}`;
+    document.getElementById('asr').innerText = `Asr: ${prayerTimes.Asr}`;
+    document.getElementById('maghrib').innerText = `Maghrib: ${prayerTimes.Maghrib}`;
+    document.getElementById('isha').innerText = `Isha: ${prayerTimes.Isha}`;
+}
+
+function getNextPrayerTime() {
+    const now = new Date();
+    for (let [name, time] of Object.entries(prayerTimes)) {
+        const prayerDateTime = new Date();
+        const [hour, minute] = time.split(':');
+        prayerDateTime.setHours(parseInt(hour), parseInt(minute), 0);
+
+        if (prayerDateTime > now) {
+            return { name, time: prayerDateTime };
+        }
+    }
+    return null;
+}
+
+function startTimer() {
+    const countdownElement = document.getElementById('countdown');
+
+    function updateCountdown() {
+        const nextPrayer = getNextPrayerTime();
+        if (nextPrayer) {
+            const now = new Date();
+            const diff = nextPrayer.time - now;
+
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            countdownElement.innerText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
+    updateCountdown(); // Call immediately
+    setInterval(updateCountdown, 1000);
+}
+
+function showPrayerAlert(prayer) {
+    const alertBox = document.getElementById('alert-box');
+    if (alertBox) {
+        alertBox.innerText = `It is time for ${prayer}!`;
+        alertBox.style.display = 'block';
+        document.getElementById('adhan-audio').play();
+        setTimeout(() => alertBox.style.display = 'none', 60000);
+    } else {
+        alert(`It is time for ${prayer}!`);
+        document.getElementById('adhan-audio').play();
+    }
+}
+
+function scheduleNotifications(prayerTimes) {
+    const now = new Date();
+    Object.entries(prayerTimes).forEach(([prayer, time]) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        const prayerTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+        if (prayerTime < now) {
+            prayerTime.setDate(prayerTime.getDate() + 1);
+        }
+
+        const timeUntilPrayer = prayerTime - now;
+        setTimeout(() => {
+            if (Notification.permission === "granted") {
+                showNotification(prayer);
+            } else {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") showNotification(prayer);
+                    else alert(`Time for ${prayer} prayer.`);
+                });
+            }
+        }, timeUntilPrayer);
+    });
+}
+
+function showNotification(prayer) {
+    const notification = new Notification(`${prayer} Prayer Time`, {
+        body: `It's time for ${prayer} prayer.`,
+    });
+    document.getElementById('adhan-audio').play();
+}
+
+function askForLocation() {
+    const popup = document.getElementById('location-popup');
+    const overlay = document.getElementById('overlay');
+
+    popup.style.display = 'block';
+    overlay.style.display = 'block';
+
+    document.getElementById('yes-btn').onclick = function () {
+        popup.style.display = 'none';
+        overlay.style.display = 'none';
+        getUserLocation();
+    };
+
+    document.getElementById('no-btn').onclick = function () {
+        popup.style.display = 'none';
+        overlay.style.display = 'none';
+        alert('Cannot determine prayer times without location.');
+    };
+}
+
+function getUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                .then(res => res.json())
+                .then(data => {
+                    const city = data.city || data.locality || 'Cairo';
+                    const country = data.countryName || 'Egypt';
+                    fetchPrayerTimes(city, country);
+                })
+                .catch(() => alert('Could not get location details.'));
+        }, () => {
+            alert('Location access denied. Enable location in your browser.');
+        });
+    } else {
+        alert('Geolocation not supported on your device.');
+    }
+}
+
+// INIT
+askForLocation();
+setInterval(updateHadith, 60000); // Rotate hadiths every minute
+
+function OpenJuz30() { location.href = "juz30.html"; }
+function Qibla() { location.href = "qibla.html"; }
+function Count() { location.href = "counter.html"; }
+function HijriDate() { location.href = "hijri.html"; }
+
+</script>
+
+<div id="alert-box" class="popup" style="display:none; background:#fff; color:black; font-weight:bold; z-index:99999;"></div>
+</body>
+</html>
