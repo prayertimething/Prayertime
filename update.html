@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Intermission</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 700px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.8rem;
+            line-height: 1.5;
+            letter-spacing: 0.5px;
+        }
+
+        h1.indonesian {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: #b0b0b0;
+            font-style: italic;
+            margin-bottom: 2rem;
+        }
+
+        #countdown {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00ddeb, #ff4e50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 1.5rem 0;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0% { text-shadow: 0 0 5px rgba(0, 221, 235, 0.5); }
+            50% { text-shadow: 0 0 15px rgba(0, 221, 235, 0.8), 0 0 25px rgba(255, 78, 80, 0.5); }
+            100% { text-shadow: 0 0 5px rgba(0, 221, 235, 0.5); }
+        }
+
+        .loader {
+            margin: 2rem auto;
+            width: 70px;
+            height: 70px;
+            border: 6px solid rgba(255, 255, 255, 0.1);
+            border-top: 6px solid #00ddeb;
+            border-bottom: 6px solid #ff4e50;
+            border-radius: 50%;
+            animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 1.5rem;
+        }
+
+        .progress {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ddeb, #ff4e50);
+            animation: progress 120s linear forwards;
+        }
+
+        @keyframes progress {
+            0% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Micro-interaction on hover */
+        .container:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+            h1.indonesian {
+                font-size: 1.1rem;
+            }
+            #countdown {
+                font-size: 3rem;
+            }
+            .loader {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>You have been redirected here to wait for the update to load. (Yes, this was on purpose)</h1>
+        <h1 class="indonesian">Kamu dikirim ke sini untuk menunggu updatenya memuat. (Ya, ini sengaja)</h1>
+        <div id="countdown">2:00</div>
+        <div class="loader"></div>
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        // Set the countdown duration to 2 minutes (120 seconds)
+        let timeLeft = 120;
+
+        // Update the countdown every second
+        const countdownElement = document.getElementById('countdown');
+        const countdownInterval = setInterval(() => {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            countdownElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+            timeLeft--;
+
+            // When countdown reaches 0, redirect to the specified URL
+            if (timeLeft < 0) {
+                clearInterval(countdownInterval);
+                window.location.href = 'https://prayertimething.github.io/Prayertime/';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
